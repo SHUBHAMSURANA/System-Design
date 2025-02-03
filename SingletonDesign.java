@@ -14,6 +14,7 @@ class Singleton {
     }
 
     // Public method to provide access to the singleton instance
+    //**In Java, an outer class can access private members of its inner (nested) class.
     public static Singleton getInstance() {
         return InstanceHolder.INSTANCE;
     }
