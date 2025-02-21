@@ -93,7 +93,7 @@ public class RideBookedEvent {
     }
 }
 
-// to have async method 
+// to have async listner
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.context.event.EventListener;
