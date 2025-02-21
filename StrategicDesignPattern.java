@@ -93,3 +93,22 @@ public class RideBookedEvent {
     }
 }
 
+// to have async method 
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+import org.springframework.context.event.EventListener;
+
+@Service
+public class NotificationService {
+
+    @Async  // Runs in a separate thread
+    @EventListener
+    public void sendNotification(RideBookedEvent event) {
+        System.out.println("Sending notification asynchronously for Booking ID: " + event.getBookingId());
+
+        // Simulate delay
+        try { Thread.sleep(2000); } catch (InterruptedException e) { e.printStackTrace(); }
+
+        System.out.println("Notification sent for Booking ID: " + event.getBookingId());
+    }
+}
