@@ -5,3 +5,22 @@ iF we choose car , we will get different route
 iF we choose bike , we will get different route
 
 So we need differnt strategy to achive the goal.
+
+1️⃣ Payment Gateway Integrations (Payment Processing)
+💡 Problem:
+An e-commerce platform needs to support different payment methods: PayPal, Stripe, Razorpay, Google Pay, etc.
+
+🔧 Strategy Pattern Applied:
+Each payment method is a different strategy, implementing a PaymentStrategy interface.
+
+java
+Copy
+Edit
+interface PaymentStrategy {
+    void pay(Order order);
+}
+
+class PayPalPaymentStrategy implements PaymentStrategy { ... }
+class StripePaymentStrategy implements PaymentStrategy { ... }
+class RazorpayPaymentStrategy implements PaymentStrategy { ... }
+➡️ At runtime, the right payment strategy is selected based on user choice.
