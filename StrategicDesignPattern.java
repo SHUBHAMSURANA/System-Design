@@ -1,114 +1,115 @@
-// Main Class
-package com.example.designpattern;
+// Based upon the rest api the Corresponding discount strategic will be applied
 
-import com.example.designpattern.Strategicdeignpattern.RiderService;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-package com.example.designpattern.Strategicdeignpattern;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Service;
+// Common interface for all discount strategies with 2 methods.
+interface DiscountStrategy {
 
-@SpringBootApplication
-public class DesignpatternApplication implements CommandLineRunner{
-
-	private final RiderService riderService;
-
-	public DesignpatternApplication(RiderService riderService) {
-		this.riderService = riderService;
-	}
-
-
-	public static void main(String[] args) {
-		SpringApplication.run(DesignpatternApplication.class, args);
-	}
-
-	@Override
-	public void run(String... args) throws Exception {
-		// Simulate booking a ride
-		riderService.bookRide(1L, 101L, 25.0);
-
-
-	}
+    double applyDiscount(double orderAmount);    
+    String getStrategyName();
 }
 
-//RiderService , The event is triggered here
+// Now lets create the 2 implementing class
+//*****************Interface 1********************
+@Component
+class FlatDiscountStrategy implements DiscountStrategy {
 
+    private static final double FLAT_AMOUNT = 100.0;
+
+    @Override
+    public double applyDiscount(double orderAmount) {
+        double discountedAmount = Math.max(orderAmount - FLAT_AMOUNT, 0);
+        System.out.println("[FlatDiscountStrategy] Rs. " + FLAT_AMOUNT + " flat discount applied.");
+        return discountedAmount;
+    }
+
+    @Override
+    public String getStrategyName() {
+        return "FLAT";
+    }
+}
+//*****************Interface 2********************
+@Component
+class CashbackDiscountStrategy implements DiscountStrategy {
+
+    private static final double CASHBACK_PERCENTAGE = 5.0;
+
+    @Override
+    public double applyDiscount(double orderAmount) {
+        double cashbackAmount = (orderAmount * CASHBACK_PERCENTAGE) / 100;
+        double discountedAmount = orderAmount - cashbackAmount;
+        System.out.println("[CashbackDiscountStrategy] " + CASHBACK_PERCENTAGE + "% cashback applied (Rs. " + cashbackAmount + ").");
+        return discountedAmount;
+    }
+
+    @Override
+    public String getStrategyName() {
+        return "CASHBACK";
+    }
+}
+
+// Common class where both above bean will be injected for use
+@Component
+class DiscountStrategyFactory {
+    private final Map<String, DiscountStrategy> strategyMap = new HashMap<>();
+
+/* *******IMPORTANT***CONCEPT*********
+It says:
+"Hey, I have two (or more) beans implementing DiscountStrategy"
+It injects both beans into the List<DiscountStrategy>
+The list will look something like:
+*/	
+	
+    @Autowired
+    public DiscountStrategyFactory(List<DiscountStrategy> strategies) {
+        for (DiscountStrategy strategy : strategies) {
+            strategyMap.put(strategy.getStrategyName(), strategy);
+        }
+    }
+
+    public DiscountStrategy getStrategy(String strategyName) {
+        DiscountStrategy strategy = strategyMap.get(strategyName.toUpperCase());
+        if (strategy == null) {
+            throw new IllegalArgumentException("No strategy found for: " + strategyName);
+        }
+        return strategy;
+    }
+}
+
+// Sevice class to call corresponding discount method.
 @Service
-public class RiderService {
-    private final ApplicationEventPublisher eventPublisher;
+public class OrderService {
+    private final DiscountStrategyFactory discountStrategyFactory;
 
-    public RiderService(ApplicationEventPublisher eventPublisher) {
-        this.eventPublisher = eventPublisher;
-        System.out.println("Injected ApplicationEventPublisher implementation: " + eventPublisher.getClass().getName());
+    @Autowired
+    public OrderService(DiscountStrategyFactory discountStrategyFactory) {
+        this.discountStrategyFactory = discountStrategyFactory;
     }
 
-    public void bookRide(Long riderId, Long bookingId, Double fare) {
-        System.out.println("Ride booked for Rider ID: " + riderId + ", Booking ID: " + bookingId);
-
-        // Publish the RideBookedEvent
-        RideBookedEvent event = new RideBookedEvent(riderId, bookingId, fare);
-        eventPublisher.publishEvent(event);
+    public double calculateFinalAmount(String strategyName, double orderAmount) {
+        DiscountStrategy strategy = discountStrategyFactory.getStrategy(strategyName);
+        return strategy.applyDiscount(orderAmount);
     }
 }
 
-// PaymentService is called 
-@Service
-public class PaymentService {
+//Based on api path discount will be applied
+// http://localhost:8080/api/orders/discount?strategyName=FLAT&orderAmount=1000
 
-    @EventListener
-    public void handleRideBookedEvent(RideBookedEvent event) {
-        System.out.println("Processing payment for Rider ID: " + event.getRiderId() +
-                ", Booking ID: " + event.getBookingId() + ", Fare: $" + event.getFare());
+@RestController
+@RequestMapping("/api/orders")
+public class OrderController {
 
-        // Simulate payment processing
-        System.out.println("Payment processed successfully for Booking ID: " + event.getBookingId());
+    private final OrderService orderService;
+
+    @Autowired
+    public OrderController(OrderService orderService) {
+        this.orderService = orderService;
+    }
+
+    @GetMapping("/discount")
+    public double getDiscountedAmount(@RequestParam String strategyName,
+                                      @RequestParam double orderAmount) {
+        return orderService.calculateFinalAmount(strategyName, orderAmount);
     }
 }
 
 
-// RiderDetailClass
-public class RideBookedEvent {
-    private Long riderId;
-    private Long bookingId;
-    private Double fare;
 
-    public RideBookedEvent(Long riderId, Long bookingId, Double fare) {
-        this.riderId = riderId;
-        this.bookingId = bookingId;
-        this.fare = fare;
-    }
-
-    // Getters
-    public Long getRiderId() {
-        return riderId;
-    }
-
-    public Long getBookingId() {
-        return bookingId;
-    }
-
-    public Double getFare() {
-        return fare;
-    }
-}
-
-// to have async listner
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
-import org.springframework.context.event.EventListener;
-
-@Service
-public class NotificationService {
-
-    @Async  // Runs in a separate thread
-    @EventListener
-    public void sendNotification(RideBookedEvent event) {
-        System.out.println("Sending notification asynchronously for Booking ID: " + event.getBookingId());
-
-        // Simulate delay
-        try { Thread.sleep(2000); } catch (InterruptedException e) { e.printStackTrace(); }
-
-        System.out.println("Notification sent for Booking ID: " + event.getBookingId());
-    }
-}
