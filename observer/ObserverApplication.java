@@ -11,7 +11,7 @@ public class ObserverApplication {
 		observable.addObserver(observer1);
 		observable.addObserver(observer2);
 
-		// Now both above class will be notofied and news will be set
+		// Now both above class will be notofied and news will be set in one shot. that is the magic
 		observable.setNews("news");
 		System.out.println(observer.getNews());
 	}
