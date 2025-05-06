@@ -59,7 +59,24 @@ public class ConsistentHashing {
             }
         }
     }
-
+/*
+    🔁 Example
+        Let’s say:
+        
+        Ring = {100L: "A", 200L: "B", 300L: "C"}
+        
+        key = "user42", hash(user42) = 250
+        
+        numReplicas = 2
+        
+        Flow:
+        
+        First match = 300L: "C"
+        
+        Next higher = wrap around to 100L: "A"
+        
+        Output: ["C", "A"]
+*/
     public List<String> getReplicatedServers(String key, int numReplicas) {
         if (ring.isEmpty()) return Collections.emptyList();
 
