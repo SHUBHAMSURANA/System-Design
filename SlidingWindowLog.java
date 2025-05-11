@@ -62,3 +62,8 @@ public class Main {
         }
     }
 }
+
+
+⚠️ Limitations
+Memory consumption increases with traffic because each request's timestamp is stored.
+Not suitable for very high traffic systems — in such cases, prefer Sliding Window Counter or Token Bucket algorithm.
